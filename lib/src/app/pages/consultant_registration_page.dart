@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:chat_with_doc/src/app/models/users.dart';
-import 'package:chat_with_doc/src/app/pages/doctor_dashboard_page.dart';
-import 'package:chat_with_doc/src/app/services/app_storage.dart';
+import 'package:chat_with_doc/src/app/navigation.dart';
+import 'package:chat_with_doc/src/app/services/services.dart';
 
 class ConsultantRegistrationPage extends StatefulWidget {
   const ConsultantRegistrationPage({super.key});
@@ -25,11 +24,12 @@ class _ConsultantRegistrationPageState
   final _degreeController = TextEditingController();
   final _universityController = TextEditingController();
   final _graduationYearController = TextEditingController();
-  final _feeController = TextEditingController(text: '45');
+  final _feeController = TextEditingController(text: '1500');
   final _aboutController = TextEditingController();
   final List<String> _selectedLanguages = ['English'];
   String? _selectedSpecialization;
   bool _agreedToTerms = false;
+  bool _loading = false;
 
   static const specializations = [
     'General Practice',
@@ -78,7 +78,7 @@ class _ConsultantRegistrationPageState
     });
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSpecialization == null || _selectedSpecialization!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,41 +100,44 @@ class _ConsultantRegistrationPageState
       );
       return;
     }
-    final password = _passwordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim();
-    if (password != confirmPassword) {
+    final password = _passwordController.text;
+    if (password.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 8 characters')),
+      );
+      return;
+    }
+    if (password != _confirmPasswordController.text) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
-    final fee = double.tryParse(_feeController.text.trim()) ?? 45.0;
-    final experience = int.tryParse(_experienceController.text.trim()) ?? 0;
-    final gradYear = int.tryParse(_graduationYearController.text.trim()) ?? 0;
 
-    final consultant = ConsultantUser(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: password,
-      phone: _phoneController.text.trim(),
-      slmcNumber: _slmcController.text.trim(),
-      specialization: _selectedSpecialization!,
-      hospital: _hospitalController.text.trim(),
-      experienceYears: experience,
-      degree: _degreeController.text.trim(),
-      university: _universityController.text.trim(),
-      graduationYear: gradYear,
-      consultationFee: fee,
-      about: _aboutController.text.trim(),
-      languages: List.from(_selectedLanguages),
-      status: 'pending',
-      walletBalance: 125,
-    );
-    AppStorage.registerConsultant(consultant);
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const DoctorDashboardPage()),
-    );
+    setState(() => _loading = true);
+    try {
+      final user = await Services.auth.registerDoctor({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'password': password,
+        'phone': _phoneController.text.trim(),
+        'slmcNumber': _slmcController.text.trim(),
+        'specialization': _selectedSpecialization,
+        'hospital': _hospitalController.text.trim(),
+        'experienceYears': int.tryParse(_experienceController.text.trim()),
+        'degree': _degreeController.text.trim(),
+        'university': _universityController.text.trim(),
+        'graduationYear': int.tryParse(_graduationYearController.text.trim()),
+        'consultationFee': double.tryParse(_feeController.text.trim()) ?? 0,
+        'about': _aboutController.text.trim(),
+        'languages': _selectedLanguages,
+      });
+      if (mounted) goHome(context, user);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      showError(context, e);
+    }
   }
 
   @override
@@ -220,7 +223,7 @@ class _ConsultantRegistrationPageState
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
                           decoration: _buildInputDecoration('Specialization'),
-                          value: _selectedSpecialization,
+                          initialValue: _selectedSpecialization,
                           items: specializations
                               .map(
                                 (specialization) => DropdownMenuItem(
@@ -252,7 +255,7 @@ class _ConsultantRegistrationPageState
                         const SizedBox(height: 12),
                         _buildTextField(
                           _feeController,
-                          'Consultation Fee',
+                          'Consultation Fee (Rs)',
                           false,
                           keyboardType: TextInputType.number,
                         ),
@@ -323,7 +326,7 @@ class _ConsultantRegistrationPageState
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _handleSubmit,
+                            onPressed: _loading ? null : _handleSubmit,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: Colors.blue.shade700,

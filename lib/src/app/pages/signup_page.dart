@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../components/auth_card.dart';
 import '../components/account_type_selector.dart';
-import '../models/users.dart';
-import '../pages/chat_home_page.dart';
-import '../services/app_storage.dart';
+import '../navigation.dart';
+import '../services/services.dart';
 
 class SignupPage extends StatefulWidget {
   final AccountType accountType;
@@ -22,6 +21,7 @@ class _SignupPageState extends State<SignupPage> {
   final _passwordController = TextEditingController();
   final _healthHistoryController = TextEditingController();
   final _drugAllergiesController = TextEditingController();
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -33,28 +33,24 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  void _handleCreateAccount() {
+  Future<void> _handleCreateAccount() async {
     if (!_formKey.currentState!.validate()) return;
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
 
-    AppStorage.registerPatient(
-      PatientUser(
-        name: name,
-        email: email,
-        password: password,
+    setState(() => _loading = true);
+    try {
+      final user = await Services.auth.registerPatient(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
         healthHistory: _healthHistoryController.text.trim(),
         drugAllergies: _drugAllergiesController.text.trim(),
-      ),
-    );
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) =>
-            ChatHomePage(accountType: widget.accountType, userName: name),
-      ),
-    );
+      );
+      if (mounted) goHome(context, user);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      showError(context, e);
+    }
   }
 
   @override
@@ -150,8 +146,8 @@ class _SignupPageState extends State<SignupPage> {
                                 ),
                               ),
                               validator: (value) =>
-                                  (value == null || value.isEmpty)
-                                  ? 'Enter your email'
+                                  (value == null || !value.contains('@'))
+                                  ? 'Enter a valid email'
                                   : null,
                             ),
                             const SizedBox(height: 12),
@@ -168,8 +164,8 @@ class _SignupPageState extends State<SignupPage> {
                                 ),
                               ),
                               validator: (value) =>
-                                  (value == null || value.isEmpty)
-                                  ? 'Enter your password'
+                                  (value == null || value.length < 8)
+                                  ? 'Use at least 8 characters'
                                   : null,
                             ),
                             const SizedBox(height: 12),
@@ -212,7 +208,9 @@ class _SignupPageState extends State<SignupPage> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _handleCreateAccount,
+                                onPressed: _loading
+                                    ? null
+                                    : _handleCreateAccount,
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,

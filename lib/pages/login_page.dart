@@ -1,11 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_with_doc/src/app/components/auth_card.dart';
-import 'package:chat_with_doc/src/app/components/account_type_selector.dart';
+import 'package:chat_with_doc/src/app/navigation.dart';
 import 'package:chat_with_doc/src/app/pages/account_type_choice_page.dart';
-import 'package:chat_with_doc/src/app/pages/chat_home_page.dart';
-import 'package:chat_with_doc/src/app/pages/doctor_dashboard_page.dart';
-import 'package:chat_with_doc/src/app/services/app_storage.dart';
+import 'package:chat_with_doc/src/app/services/api_client.dart';
+import 'package:chat_with_doc/src/app/services/services.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -26,37 +26,23 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final consultant = AppStorage.loginConsultant(email, password);
-    if (consultant != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const DoctorDashboardPage()),
+    setState(() => _loading = true);
+    try {
+      final user = await Services.auth.login(
+        _emailController.text,
+        _passwordController.text,
       );
-      return;
+      if (mounted) goHome(context, user);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.details)));
     }
-
-    final patient = AppStorage.loginPatient(email, password);
-    if (patient != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => ChatHomePage(
-            accountType: AccountType.patient,
-            userName: patient.name,
-          ),
-        ),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Invalid credentials. Please sign up first.'),
-      ),
-    );
   }
 
   @override
@@ -156,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _handleLogin,
+                                onPressed: _loading ? null : _handleLogin,
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
@@ -166,7 +152,16 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   backgroundColor: Colors.black87,
                                 ),
-                                child: const Text('Login'),
+                                child: _loading
+                                    ? const SizedBox(
+                                        height: 18,
+                                        width: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Login'),
                               ),
                             ),
                           ],

@@ -1,67 +1,69 @@
 import 'package:flutter/material.dart';
-import 'package:chat_with_doc/pages/login_page.dart';
-import 'package:chat_with_doc/src/app/components/account_type_selector.dart';
-import 'package:chat_with_doc/src/app/pages/consultant_list_page.dart';
-import 'package:chat_with_doc/src/app/services/app_storage.dart';
-import 'package:chat_with_doc/src/app/pages/chat_page.dart';
 
+import '../components/consultation_list.dart';
+import '../models/models.dart';
+import '../navigation.dart';
+import '../services/services.dart';
+import '../utils/format.dart';
+import 'consultant_list_page.dart';
+import 'wallet_page.dart';
+
+/// The patient's home: their consultations (live), wallet shortcut, and a button to start a new chat.
 class ChatHomePage extends StatefulWidget {
-  final AccountType accountType;
-  final String userName;
-
-  const ChatHomePage({
-    super.key,
-    required this.accountType,
-    required this.userName,
-  });
+  const ChatHomePage({super.key});
 
   @override
   State<ChatHomePage> createState() => _ChatHomePageState();
 }
 
 class _ChatHomePageState extends State<ChatHomePage> {
-  late List<ChatSession> _chatSessions;
+  final _listKey = GlobalKey<LiveConsultationListState>();
+  Wallet? _wallet;
 
   @override
   void initState() {
     super.initState();
-    _loadChatSessions();
+    _loadWallet();
   }
 
-  void _loadChatSessions() {
-    final patientEmail = AppStorage.currentPatient?.email ?? '';
-    if (patientEmail.isNotEmpty) {
-      _chatSessions = AppStorage.getPatientChatHistory(patientEmail)
-        ..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-    } else {
-      _chatSessions = [];
+  Future<void> _loadWallet() async {
+    try {
+      final wallet = await Services.backend.wallet();
+      if (mounted) setState(() => _wallet = wallet);
+    } catch (_) {
+      // The chip just stays hidden.
     }
+  }
+
+  Future<void> _openDoctors() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ConsultantListPage()));
+    _listKey.currentState?.reload();
+    _loadWallet();
+  }
+
+  Future<void> _openWallet() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WalletPage()));
+    _loadWallet();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isConsultant = widget.accountType == AccountType.consultant;
-
+    final user = Services.auth.user;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chats'),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false,
-              );
-            },
-          ),
+          if (_wallet != null)
+            TextButton.icon(
+              onPressed: _openWallet,
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              icon: const Icon(Icons.stars, size: 18),
+              label: Text('${_wallet!.points} pts'),
+            ),
         ],
       ),
       drawer: Drawer(
@@ -69,31 +71,20 @@ class _ChatHomePageState extends State<ChatHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DrawerHeader(
+              UserAccountsDrawerHeader(
                 decoration: BoxDecoration(color: Colors.blue.shade700),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.person, size: 32, color: Colors.blue),
+                accountName: Text(user?.name ?? ''),
+                accountEmail: Text(user?.email ?? ''),
+                currentAccountPicture: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    initialsOf(user?.name ?? '?'),
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
                     ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Micro Consultation',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Secure patient chat',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               ListTile(
@@ -103,93 +94,40 @@ class _ChatHomePageState extends State<ChatHomePage> {
               ),
               ListTile(
                 leading: const Icon(Icons.person_search),
-                title: const Text('New Chat'),
+                title: const Text('Find a doctor'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const ConsultantListPage(),
-                    ),
-                  );
+                  _openDoctors();
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.account_balance_wallet_outlined),
+                title: const Text('Wallet & points'),
+                subtitle: _wallet == null
+                    ? null
+                    : Text(
+                        '${formatMoney(_wallet!.balance)} · ${_wallet!.points} points',
+                      ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openWallet();
+                },
+              ),
+              const Spacer(),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('Settings'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.help_outline),
-                title: const Text('Help & feedback'),
-                onTap: () {},
+                leading: const Icon(Icons.logout),
+                title: const Text('Log out'),
+                onTap: () => logout(context),
               ),
             ],
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(8),
-        child: isConsultant
-            ? _ConsultantChatList()
-            : _PatientChatList(
-                chatSessions: _chatSessions,
-                onRefresh: _loadChatSessions,
-              ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: isConsultant
-          ? null
-          : FloatingActionButton(
-              onPressed: () async {
-                await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ConsultantListPage(),
-                  ),
-                );
-                // Refresh chats when returning from consultant list
-                setState(() {
-                  _loadChatSessions();
-                });
-              },
-              backgroundColor: Colors.blue.shade700,
-              child: const Icon(Icons.chat_bubble_outline),
-            ),
-    );
-  }
-}
-
-class _PatientChatList extends StatelessWidget {
-  final List<ChatSession> chatSessions;
-  final VoidCallback onRefresh;
-
-  const _PatientChatList({required this.chatSessions, required this.onRefresh});
-
-  String _getTimeString(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return 'now';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (chatSessions.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: LiveConsultationList(
+        key: _listKey,
+        doctorView: false,
+        emptyView: Column(
           children: [
             Icon(
               Icons.chat_bubble_outline,
@@ -208,163 +146,16 @@ class _PatientChatList extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Start a new consultation with a specialist',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+              style: TextStyle(color: Colors.grey.shade500),
             ),
           ],
         ),
-      );
-    }
-
-    return ListView.separated(
-      itemCount: chatSessions.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final session = chatSessions[index];
-        final lastMessage = session.getLastMessage();
-        final timeString = _getTimeString(session.lastMessageTime);
-
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          leading: CircleAvatar(
-            radius: 26,
-            backgroundColor: Colors.blue.shade200,
-            backgroundImage: session.consultantAvatar != null
-                ? NetworkImage(session.consultantAvatar!)
-                : null,
-            child: session.consultantAvatar == null
-                ? Text(
-                    session.consultantName[0],
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade700,
-                    ),
-                  )
-                : null,
-          ),
-          title: Text(
-            session.consultantName,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Text(
-                session.consultantSpecialization,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                lastMessage,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-              ),
-            ],
-          ),
-          trailing: Text(
-            timeString,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          onTap: () async {
-            final consultant = AppStorage.consultants.firstWhere(
-              (c) => c.id == session.consultantId,
-            );
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => ChatPage(
-                  consultant: consultant,
-                  patientEmail: AppStorage.currentPatient?.email ?? '',
-                ),
-              ),
-            );
-            onRefresh();
-          },
-        );
-      },
-    );
-  }
-}
-
-class _ConsultantChatList extends StatelessWidget {
-  const _ConsultantChatList();
-
-  @override
-  Widget build(BuildContext context) {
-    final chats = const [
-      {
-        'name': 'Patient: Sahana',
-        'msg': 'Heart palpitations',
-        'time': '09:10 AM',
-        'unread': 1,
-        'image': 'https://i.pravatar.cc/150?img=12',
-      },
-      {
-        'name': 'Patient: Arjun',
-        'msg': 'Diet consultation',
-        'time': 'Yesterday',
-        'unread': 0,
-        'image': 'https://i.pravatar.cc/150?img=20',
-      },
-    ];
-
-    return ListView.separated(
-      itemCount: chats.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final c = chats[index];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          leading: CircleAvatar(
-            radius: 26,
-            backgroundColor: Colors.blue.shade200,
-            backgroundImage: NetworkImage(c['image'] as String),
-          ),
-          title: Text(
-            c['name'] as String,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text(
-            c['msg'] as String,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                c['time'] as String,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-              const SizedBox(height: 6),
-              if ((c['unread'] as int) > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade700,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${c['unread']}',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ),
-            ],
-          ),
-          onTap: () {},
-        );
-      },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openDoctors,
+        icon: const Icon(Icons.add_comment_outlined),
+        label: const Text('New chat'),
+      ),
     );
   }
 }
