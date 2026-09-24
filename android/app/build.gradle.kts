@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.chat_with_doc"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "30.0.16248370"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
