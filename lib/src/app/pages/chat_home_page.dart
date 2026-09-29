@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../components/consultation_list.dart';
-import '../models/models.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../navigation.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 import 'consultant_list_page.dart';
 import 'wallet_page.dart';
 

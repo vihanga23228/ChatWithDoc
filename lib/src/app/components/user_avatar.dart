@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/format.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 
 /// A round avatar that shows the photo when there is one, and initials otherwise.
 class UserAvatar extends StatelessWidget {

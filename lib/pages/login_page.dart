@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:chat_with_doc/src/app/components/auth_card.dart';
 import 'package:chat_with_doc/src/app/navigation.dart';
 import 'package:chat_with_doc/src/app/pages/account_type_choice_page.dart';
-import 'package:chat_with_doc/src/app/services/api_client.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import 'package:chat_with_doc/src/app/services/services.dart';
 
 class LoginPage extends StatefulWidget {

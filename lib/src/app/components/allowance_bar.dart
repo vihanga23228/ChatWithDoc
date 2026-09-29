@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/models.dart';
-import '../utils/format.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 
 /// What the patient can still send in a points consultation: words, photos, voice and video time.
 class AllowanceBar extends StatelessWidget {

@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../models/models.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../pages/chat_page.dart';
-import '../services/realtime_service.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 import 'user_avatar.dart';
 
 /// The user's consultations, newest activity first. Updates live: new chats, previews and unread counts

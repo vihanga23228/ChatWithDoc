@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/models.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 import 'user_avatar.dart';
 
 /// A doctor's public profile with their latest reviews.

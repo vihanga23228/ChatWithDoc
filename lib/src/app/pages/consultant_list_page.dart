@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import '../components/consultant_profile_sheet.dart';
 import '../components/payment_confirmation_dialog.dart';
 import '../components/user_avatar.dart';
-import '../models/models.dart';
-import '../services/api_client.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 import 'chat_page.dart';
 
 /// Approved doctors, best rated first. Starting a chat opens the payment dialog, then the chat.

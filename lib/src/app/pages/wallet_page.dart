@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/models.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../navigation.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 
 /// Balance, points and history. Patients can top up (card) and buy points (card or wallet);
 /// doctors see their earnings read-only.

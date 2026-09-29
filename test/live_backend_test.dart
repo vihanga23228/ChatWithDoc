@@ -10,11 +10,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chat_with_doc/src/app/models/models.dart';
-import 'package:chat_with_doc/src/app/services/api_client.dart';
-import 'package:chat_with_doc/src/app/services/auth_service.dart';
-import 'package:chat_with_doc/src/app/services/backend.dart';
-import 'package:chat_with_doc/src/app/services/realtime_service.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 
 const _live = bool.fromEnvironment('LIVE_BACKEND');
 

@@ -1,7 +1,4 @@
-import 'api_client.dart';
-import 'auth_service.dart';
-import 'backend.dart';
-import 'realtime_service.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 
 /// App-wide singletons, created once in main().
 class Services {

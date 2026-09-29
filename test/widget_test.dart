@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chat_with_doc/src/app/models/models.dart';
-import 'package:chat_with_doc/src/app/utils/format.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 
 void main() {
   test('parses a consultation from the backend JSON', () {

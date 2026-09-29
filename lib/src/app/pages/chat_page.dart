@@ -6,12 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import '../components/allowance_bar.dart';
 import '../components/authenticated_image.dart';
 import '../components/user_avatar.dart';
-import '../models/models.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../navigation.dart';
-import '../services/api_client.dart';
-import '../services/realtime_service.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 
 /// One consultation's chat, for both the patient and the doctor.
 ///

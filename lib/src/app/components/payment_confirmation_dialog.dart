@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/models.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../pages/wallet_page.dart';
-import '../services/api_client.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 import 'user_avatar.dart';
 
 /// Lets the patient choose how to pay (card, wallet or points) and starts the consultation.

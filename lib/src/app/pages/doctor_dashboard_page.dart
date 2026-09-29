@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../components/consultation_list.dart';
 import '../components/user_avatar.dart';
-import '../models/models.dart';
+import 'package:chat_with_doc_core/chat_with_doc_core.dart';
 import '../navigation.dart';
 import '../services/services.dart';
-import '../utils/format.dart';
 import 'wallet_page.dart';
 
 /// The doctor's home: approval status, earnings, and patient chats (live).
